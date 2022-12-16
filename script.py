@@ -1,45 +1,11 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from Models import RibbyOdeModel, RibbySimplifiedOdeModel
-
+from models import RibbyOdeModel, RibbySimplifiedOdeModel
 from therapy_display import plot_simple_therapy, plot_therapy
 import therapy
 
-# Proliferative cells initial population - according to research
-P0 = 7.13
-# Quiescent cells initial population - according to research
-Q0 = 41.2
-# Damaged quiescent cells - 0 as we start before any treatments
-Qp0 = 0
-# Drug dose - arbitrary number - should be set to 1 at the start of each cycle
-C0 = 1
 
-# According to research
-# lambda_P = 6.80157379e-01
-# k_PQ = 4.17370748e-01
-# k_QpP = 0.00000001e+00
-# delta_Qp = 6.78279483e-01
-# gamma_P = 5.74025981e+00
-# gamma_Q = 1.34300000e+00
-# KDE = 9.51318080e-02
-# K = 1.60140838e+02
-
-lambda_P = 0.121
-k_PQ = 0.0295
-k_QpP = 0.0031
-delta_Qp = 0.00867
-gamma_P = 0.729
-gamma_Q = 0.729
-KDE = 0.24
-K = 100
-
-# Setting initial values vector
-y0 = P0, Q0, Qp0, C0
-y0_simple = P0, C0
-
-# Setting constants
-consts = (KDE, lambda_P, K, k_QpP, k_PQ, gamma_P, gamma_Q, delta_Qp)
 
 if __name__ == "__main__":
 
@@ -57,6 +23,8 @@ if __name__ == "__main__":
     else:
         treatment_results = therapy.gliomas_therapy(ribby_model, time_range, y0)
         plot_therapy(treatment_results)
+
+
 
     import os
     os.exit(1)
