@@ -3,6 +3,8 @@ from Models import Model
 from typing import NewType
 from collections.abc import Callable, Mapping, Sequence
 from Models import baseline_model, baseline_simple_model
+import copy
+import pandas as pd
 
 class Therapy:
     def __init__(self, model: Model, strategy: Callable[[Model, int], (Mapping[str, Sequence[float]], int, Sequence[float])]):
@@ -29,6 +31,13 @@ class Therapy:
             y = next_y
             t = time_series[current_step:]
             iteration += 1
+
+    def save_to_csv(self, filename):
+        dataframe_content = copy.copy(self.results)
+        dataframe_content['day'] = self.time_series
+
+        df = pd.DataFrame(dataframe_content)
+        df.to_csv(f'{filename}.csv', index=False)
     
 def gliomas_strategy(model: Model, iteration: int) -> tuple[Mapping[str, Sequence[float]], int, Sequence[float]]:
     result = model.result

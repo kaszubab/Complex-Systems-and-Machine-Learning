@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 import scipy.integrate as integrate
 from collections.abc import Mapping, Sequence
+import copy
+import pandas as pd
 
 class Model(ABC):
     def __init__(self) -> None:
         self._result: Mapping[str, Sequence[float]] = dict()
+        self.time_series: Sequence[int] = []
 
     @property
     def result(self):
@@ -16,6 +19,13 @@ class Model(ABC):
     @abstractmethod
     def compute(self, initial_state, time_series):
         pass
+
+    def save_to_csv(self, filename: str):
+        dataframe_content = copy.copy(self._result)
+        dataframe_content['day'] = self.time_series
+
+        df = pd.DataFrame(dataframe_content)
+        df.to_csv(f'{filename}.csv', index=False)
 
 
 class RibbyOdeModel(Model):
@@ -59,6 +69,7 @@ class RibbyOdeModel(Model):
             'Qp': Qp,
             'C': C,
         }
+        
 
 class RibbySimplifiedOdeModel(Model):
     def __init__(self, hyperparameters):
