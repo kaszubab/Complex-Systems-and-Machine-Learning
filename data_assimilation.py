@@ -1,85 +1,26 @@
+from Models import surrogate_model, baseline_model, initial_tuple_ribba, baseline_hyperparams, initial_tuple_test, RibbySimplifiedOdeModel, simplified_baseline_hyperparams
+from Assimilation import ribba_model_trainer, compute_assimilated_parameters, to_params, simple_therapy_trainer, to_params_simple, simple_less_params_therapy_trainer
+from utils import compare_simple_model_results
 import numpy as np
-from adao import adaoBuilder
-import pandas as pd
-import matplotlib.pyplot as plt
-import sys
+from Therapy import gliomas_therapy, gliomas_simple_therapy, gliomas_simple_strategy, Therapy
 
+time_range = np.linspace(0, 101, 101)
+gliomas_therapy.compute_therapy(time_range, initial_tuple_ribba)
 
-FILE_PATH = sys.argv[1] if len(sys.argv) > 1 else ''
+parsed_baseline_model_results = {
+  'P': gliomas_therapy.results['P'] + gliomas_therapy.results['Q'] + gliomas_therapy.results['Qp'],
+  'C': gliomas_therapy.results['C']
+}
 
-labels = ['P', 'Q', 'Qp','C', 'cancer_cells']
-baseline = pd.read_csv(FILE_PATH + 'baseline.csv')
-surrogate = pd.read_csv(FILE_PATH + 'surrogate.csv')
-iterations = [1, 5]
-sizes = [2,4]
+bounds = [[None,None] for _ in range(4)]
+bounds[2] = [0.05, 0.15]
+assimilated_hyperparams = compute_assimilated_parameters(simple_less_params_therapy_trainer, parsed_baseline_model_results, simplified_baseline_hyperparams, bounds)
 
-def save_plots(labels, backgrounds, observations, name_suffix, iterations):
-  for label in labels:
-      background = backgrounds[label]
-      observation = observations[label]
+assimilated_therapy = Therapy(RibbySimplifiedOdeModel(to_params_simple(assimilated_hyperparams)), gliomas_simple_strategy)
+assimilated_therapy.compute_therapy(time_range, initial_tuple_test)
 
-      operator = np.identity(observation.shape[0])
-      t = np.arange(observation.shape[0])
-      case = adaoBuilder.New()
+gliomas_simple_therapy.compute_therapy(time_range, initial_tuple_test)
 
-      if iterations is None:
-        case.set( 'AlgorithmParameters',
-          Algorithm = '3DVAR',
-        )
-      else:
-        case.set( 'AlgorithmParameters',
-          Algorithm = '3DVAR',     
-          Parameters = {
-              "MaximumNumberOfIterations": iterations,
-          }
-        )
-
-      case.set( 'Background',          Vector = background )
-      case.set( 'Observation',         Vector = observation )
-      case.set( 'ObservationOperator', Matrix = operator )
-      case.execute()
-
-      result = case.get('Analysis')[-1]
-
-      # plot
-      fig = plt.figure(facecolor='w')
-      ax = fig.add_subplot(111, facecolor='#dddddd', axisbelow=True)
-      ax.plot(t, background, 'green', alpha=0.5, lw=2, label=f'baseline')
-      ax.plot(t, observation, 'red', alpha=0.5, lw=2, label=f'model')
-      ax.plot(t, result, 'blue', alpha=0.5, lw=2, label=f'assimilation')
-      ax.set_xlabel('Time /days')
-      ax.set_ylabel('Volume')
-      ax.yaxis.set_tick_params(length=0)
-      ax.xaxis.set_tick_params(length=0)
-      ax.grid(visible=True, which='major', c='w', lw=2, ls='-')
-      legend = ax.legend()
-      legend.get_frame().set_alpha(0.5)
-      ax.set_title(label)
-      for spine in ('top', 'right', 'bottom', 'left'):
-          ax.spines[spine].set_visible(False)
-      plt.savefig(f"assimilation/{label}{name_suffix}.png")
-      plt.close()
-
-
-background = {label:baseline[label].to_numpy() for label in labels}
-noise = {label: np.random.normal(0,0.05,background[label].shape[0]) for label in labels}
-background = {label:background[label] * (1 + noise[label]) for label in labels}
-observation = {label:surrogate[label].to_numpy() for label in labels}
-
-save_plots(labels, background, observation, '', None)
-for iteration in iterations:
-  save_plots(labels, background, observation, f'_iteration_{iteration}', iteration)
-for size in sizes:
-  background_smaller = {}
-  observation_smaller = {}
-  for label in labels:
-    background_smaller[label] = []
-    observation_smaller[label] = []
-    for i, item in enumerate(background[label]):
-      if i % size == 0:
-        background_smaller[label].append(background[label][i])
-        observation_smaller[label].append(observation[label][i])
-    background_smaller[label] = np.array(background_smaller[label])
-    observation_smaller[label] = np.array(observation_smaller[label])
-
-  save_plots(labels, background_smaller, observation_smaller, f'size_{50 / size}', None)
+compare_simple_model_results([parsed_baseline_model_results, assimilated_therapy.results, gliomas_simple_therapy.results], 
+  time_range,
+  ['baseline', 'assimilated', 'simple'])
