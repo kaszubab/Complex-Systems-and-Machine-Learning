@@ -14,6 +14,7 @@ class Therapy:
         self.results = dict()
     
     def compute_therapy(self, time_series, y0):
+        self.results = dict()
         current_step = 0
         self.time_series = time_series
         t = time_series[current_step:]
