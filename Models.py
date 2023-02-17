@@ -142,6 +142,17 @@ baseline_hyperparams = {
     'K': 1.60140838e+02,
 }
 
+baseline_ribba_hyperparams = {
+    "lambda_P": 0.121,
+    "k_PQ": 0.0295,
+    "k_QpP": 0.0031,
+    "delta_Qp": 0.00867,
+    "gamma_P": 0.729,
+    "gamma_Q": 0.729,
+    "KDE": 0.24,
+    "K": 100,
+}
+
 surrogate_hyperparams = {
     **baseline_hyperparams,
     'KDE': baseline_hyperparams['KDE'] * 0.98,
@@ -149,10 +160,20 @@ surrogate_hyperparams = {
     'gamma_Q': baseline_hyperparams['gamma_Q'] * 1.01
 }
 
+raw_surrogate_hyperparams = {
+    **baseline_ribba_hyperparams,
+    'KDE': baseline_hyperparams['KDE'] * 0.98,
+    'lambda_P': baseline_hyperparams['lambda_P'] * 1.03,
+    'gamma_Q': baseline_hyperparams['gamma_Q'] * 1.01
+}
+
+baseline_raw_model = RibbyOdeModel(baseline_ribba_hyperparams)
 baseline_model = RibbyOdeModel(baseline_hyperparams)
+baseline_raw_simple_model = RibbySimplifiedOdeModel(baseline_ribba_hyperparams)
 baseline_simple_model = RibbySimplifiedOdeModel(baseline_hyperparams)
 
 surrogate_model = RibbyOdeModel(surrogate_hyperparams)
+raw_surrogate_model = RibbyOdeModel(raw_surrogate_hyperparams)
 
 
 

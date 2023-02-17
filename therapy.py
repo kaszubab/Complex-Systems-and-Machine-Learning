@@ -47,7 +47,7 @@ def gliomas_strategy(model: Model, iteration: int) -> tuple[Mapping[str, Sequenc
 
     next_treatment_index = 0
     for index, value in enumerate(Q):
-        if index + 1 >= len(Q) or iteration >= 5:
+        if index + 1 >= len(Q) or iteration >= 8:
             return result, len(Q), (0,0,0,1) 
         elif value < Q[index + 1]:
             next_treatment_index = index + 1
@@ -65,11 +65,11 @@ def gliomas_simple_strategy(model: Model, iteration: int) -> tuple[Mapping[str, 
     P = result['P']
 
     next_treatment_index = 0
-    for index, value in enumerate(P):
-        if index + 1 >= len(P) or iteration >= 5:
+    for i in range(min(iteration * 20, len(P) - 1), len(P)):
+        if i + 1 >= len(P) or iteration >= 10:
             return result, len(P), (0,0,0,1) 
-        elif value < P[index + 1]:
-            next_treatment_index = index + 1
+        elif i % 20 == 0:
+            next_treatment_index = i + 1
             break
 
     partial_results = dict()
