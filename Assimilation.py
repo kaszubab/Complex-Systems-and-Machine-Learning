@@ -1,6 +1,6 @@
 import numpy as np
 from adao import adaoBuilder
-from Models import RibbyOdeModel, initial_tuple_ribba, RibbySimplifiedOdeModel, initial_tuple_simple, simplified_baseline_hyperparams
+from Models import RibbyOdeModel, initial_tuple_ribba, RibbySimplifiedOdeModel, initial_tuple_simple, simplified_baseline_hyperparams, Model
 from Therapy import Therapy, gliomas_simple_strategy
 
 def to_params(tuple_params):
@@ -36,71 +36,36 @@ def to_params_constrained(tuple_params):
 def result_to_arr(result):
   return np.array([np.array(value) for value in result.values()])
 
-def simple_model_trainer(hyperparams):
-  params_dict = to_params(hyperparams)
-  model = RibbySimplifiedOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-  model.compute(initial_tuple_simple, time_range)
-  return result_to_arr(model.result)
+def model_trainer_factory(transform_params, model_class, y0, transform_output=None):
+  def model_trainer(hyperparams, measurement_days):
+    params = transform_params(hyperparams)
+    model:Model = model_class(params)
+    time_range = np.linspace(0, 101, 101)
+    model.compute(y0, time_range)
+    result = model.result
+    if(transform_output):
+      result = transform_output(result)
+    return np.array([np.array(value)[measurement_days] for value in result.values()])
+  return model_trainer
 
-def simple_less_params_trainer(hyperparams):
-  params_dict = to_params_simple(hyperparams)
-  model = RibbySimplifiedOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-  model.compute(initial_tuple_simple, time_range)
-  return result_to_arr(model.result)
+simple_model_trainer = model_trainer_factory(to_params, RibbySimplifiedOdeModel, initial_tuple_simple)
+simple_less_params_trainer = model_trainer_factory(to_params_simple, RibbySimplifiedOdeModel, initial_tuple_simple)
+def simple_constrained_trainer(*args):
+  def transform(params):
+    params = to_params_constrained(params)
+    params['KDE'] = simplified_baseline_hyperparams['KDE']
+  return model_trainer_factory(transform, RibbySimplifiedOdeModel, initial_tuple_simple)(*args)
+def ribba_model_trainer(*args):
+  def result_transform(result):
+    return {'P': result['P'] + result['Q'] + result['Qp'], 'C': result['C']}
+  return model_trainer_factory(to_params, RibbyOdeModel, initial_tuple_ribba, result_transform)(*args)
 
-def simple_constrained_trainer(hyperparams):
-  params_dict = to_params_constrained(hyperparams)
-  params_dict['KDE'] = simplified_baseline_hyperparams['KDE']
-  model = RibbySimplifiedOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-  model.compute(initial_tuple_simple, time_range)
-  return result_to_arr(model.result)
-
-
-def ribba_model_trainer(hyperparams):
-  params_dict = to_params(hyperparams)
-  model = RibbyOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-  model.compute(initial_tuple_ribba, time_range)
-  return result_to_arr(model.result)
-
-def simple_therapy_trainer(hyperparams):
-  params_dict = to_params(hyperparams)
-  model = RibbySimplifiedOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-
-  therapy = Therapy(model, gliomas_simple_strategy)
-  therapy.compute_therapy(time_range, initial_tuple_simple)
-
-  return result_to_arr(therapy.results)
-
-def simple_less_params_therapy_trainer(hyperparams):
-  params_dict = to_params_simple(hyperparams)
-  model = RibbySimplifiedOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-
-  therapy = Therapy(model, gliomas_simple_strategy)
-  therapy.compute_therapy(time_range, initial_tuple_simple)
-
-  return result_to_arr(therapy.results)
-
-def simple_constrained_therapy_trainer(hyperparams):
-  params_dict = to_params_constrained(hyperparams)
-  params_dict['KDE'] = simplified_baseline_hyperparams['KDE']
-  model = RibbySimplifiedOdeModel(params_dict)
-  time_range = np.linspace(0, 101, 101)
-
-  therapy = Therapy(model, gliomas_simple_strategy)
-  therapy.compute_therapy(time_range, initial_tuple_simple)
-
-  return result_to_arr(therapy.results)
 
 def compute_assimilated_parameters(
   assimilated_model_trainer,
   baseline_model_observations,
   initial_hyperparameters,
+  measurement_days,
   bounds = None):
   case = adaoBuilder.New()
   if bounds:
@@ -112,7 +77,7 @@ def compute_assimilated_parameters(
     case.set( 'AlgorithmParameters', Algorithm = '3DVAR')
   case.set('Background', Vector = np.array([x for x in initial_hyperparameters.values()]))
   case.set('Observation', Vector = result_to_arr(baseline_model_observations))
-  case.set('ObservationOperator',  OneFunction = assimilated_model_trainer)
+  case.set('ObservationOperator',  OneFunction = lambda params: assimilated_model_trainer(params, measurement_days))
   case.execute()
   result = case.get('Analysis')[-1]
 

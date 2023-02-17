@@ -80,5 +80,24 @@ def gliomas_simple_strategy(model: Model, iteration: int) -> tuple[Mapping[str, 
     next_y = P[next_treatment_index], 1
     return partial_results, next_treatment_index, next_y
 
+
+def predefined_strategy(model: Model, iteration:int) -> tuple[Mapping[str, Sequence[float]], int, Sequence[float]]:
+    result = model.result
+    treatments = [30,25,25,25]
+
+    if iteration >= 4:
+        return result, len(model.result['C']), (0,0,0,1) 
+
+    next_treatment_index = treatments[iteration]
+
+    partial_results = dict()
+    for key in model.result:
+        partial_results[key] = result[key][:next_treatment_index]
+
+    next_y = [value[next_treatment_index] for value in model.result.values()]
+    next_y[-1] = 1
+    return partial_results, next_treatment_index, next_y
+
+
 gliomas_therapy = Therapy(baseline_model, gliomas_strategy)
 gliomas_simple_therapy = Therapy(baseline_simple_model, gliomas_simple_strategy)

@@ -61,7 +61,7 @@ def plot_simple_model_results(results, time_series, title):
     prepare_axis(ax)
     plt.show()
     
-def compare_ribba_model_results(results_arr, time_series, labels):
+def compare_ribba_model_results(results_arr, time_series, labels, scatter_points=None, line=None):
     subplots = ['P', 'Q', 'Qp', 'C']
     colors = ['b', 'r', 'g', 'y']
 
@@ -71,13 +71,15 @@ def compare_ribba_model_results(results_arr, time_series, labels):
         ax.set_xlabel('Time (months)')
         ax.set_ylabel('Size (mm)')
         ax.set_title(factor)
+        if(scatter_points):
+            ax.scatter([x for x,y in points], [y for x,y in points])
         for idx, results in enumerate(results_arr):
             values = results[factor]
             ax.plot(time_series, values, colors[idx], alpha=0.5, lw=2, label=labels[idx])
         prepare_axis(ax)
     plt.show()
 
-def compare_simple_model_results(results_arr, time_series, labels):
+def compare_simple_model_results(results_arr, time_series, labels, scatter_points=None, lines=None):
     subplots = ['P', 'C']
     colors = ['b', 'r', 'g', 'y']
 
@@ -87,6 +89,12 @@ def compare_simple_model_results(results_arr, time_series, labels):
         ax.set_xlabel('Time (months)')
         ax.set_ylabel('Size (mm)')
         ax.set_title(factor)
+        if(scatter_points):
+            points = scatter_points[factor]
+            ax.scatter([x for x,y in points], [y for x,y in points])
+        if(lines):
+            for line in lines:
+                ax.axvline(x = line, color = 'b')
         for idx, results in enumerate(results_arr):
             values = results[factor]
             ax.plot(time_series, values, colors[idx], alpha=0.5, lw=2, label=labels[idx])
