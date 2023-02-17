@@ -128,7 +128,6 @@ C0 = 1
 # Setting initial values vector
 initial_tuple_ribba = P0, Q0, Qp0, C0
 initial_tuple_simple = P0 + Q0, C0
-initial_tuple_test = P0 + Q0, C0
 
 # Hyperparameters obtained from paper
 
